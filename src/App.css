@@ -1,0 +1,44 @@
+/* Remove default centering and max-width */
+#root {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  text-align: initial;
+  background: #23272e;
+}
+
+/* Editor area background */
+.editor-bg {
+  background: #23272e;
+}
+
+/* Toolbar styles */
+.MuiDrawer-paper {
+  background: #2c313a !important;
+  border-right: 1px solid #222;
+}
+
+/* Menu bar styles */
+.MuiAppBar-root {
+  background: #23272e !important;
+  border-bottom: 1px solid #222;
+}
+
+/* Hide scrollbars for main area */
+body, html {
+  overflow: hidden;
+}
+
+/* Remove default logo styles */
+.logo, .logo.react {
+  display: none;
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
