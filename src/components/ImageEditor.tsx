@@ -1,5 +1,7 @@
 import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import * as fabric from 'fabric';
+import { CreateLineTool } from './Tools/LineTool';
+import { CreateBrushTool } from './Tools/BrushTool';
 
 export type Tool = 'brush' | 'text' | 'add-image' | 'none' | 'line';
 
@@ -35,7 +37,7 @@ const ImageEditor = forwardRef<ImageEditorHandle, ImageEditorProps>(
       },
       undo: () => {
         const canvas = fabricRef.current;
-        if (!canvas || undoStack.current.length < 2) return;
+        if (!canvas || undoStack.current.length === 1) return;
         // Pop current state, push to redo
         const current = undoStack.current.pop();
         if (current) redoStack.current.push(current);
@@ -95,6 +97,7 @@ const ImageEditor = forwardRef<ImageEditorHandle, ImageEditorProps>(
         undoStack.current = [fabricCanvas.toJSON() as unknown as string];
         redoStack.current = [];
       });
+
       // Listen for changes to push to undo stack
       const saveState = () => {
         console.log('Saving state');
@@ -105,7 +108,7 @@ const ImageEditor = forwardRef<ImageEditorHandle, ImageEditorProps>(
           return;
         }
         const json = canvas.toJSON() as unknown as string;
-        const hasStateChanged = undoStack.current[undoStack.current.length - 1] !== json;
+        const hasStateChanged = undoStack.current.at(-1) !== json;
         if (!hasStateChanged) {
           console.log('State has not changed, skipping save');
           return;
@@ -119,6 +122,7 @@ const ImageEditor = forwardRef<ImageEditorHandle, ImageEditorProps>(
       fabricCanvas.on('object:modified', saveState);
       fabricCanvas.on('object:removed', saveState);
       fabricCanvas.on('path:created', saveState);
+      // fabricCanvas.on('after', saveState)
 
 
       return () => {
@@ -127,90 +131,21 @@ const ImageEditor = forwardRef<ImageEditorHandle, ImageEditorProps>(
       };
     }, [image]);
 
+    // Update drawing mode, brush color, and size when tool/brush changes
     useEffect(() => {
       const fabricCanvas = fabricRef.current
       if (!fabricCanvas) {
         return
       }
-      let line: fabric.Line | undefined = undefined
 
-      const handleMouseDown = (o: fabric.TPointerEventInfo<fabric.TPointerEvent>) => {
-        if (tool !== 'line') {
-          return
-        }
-        const pointer = fabricCanvas.getViewportPoint(o.e)
-        line = new fabric.Line([pointer.x, pointer.y, pointer.x, pointer.y], {
-          strokeWidth: brushSize,
-          stroke: brushColor,
-        })
-        line.selectable = false
-        line.evented = false
-        line.strokeUniform = true
-        fabricCanvas.add(line)
+      if (tool === 'line') {
+        return CreateLineTool(fabricCanvas, brushSize, brushColor)
       }
-
-      fabricCanvas.on('mouse:down', handleMouseDown)
-
-      const handleMouseMove = (o: fabric.TPointerEventInfo<fabric.TPointerEvent>) => {
-        if (!line) {
-          return
-        }
-
-        const pointer = fabricCanvas.getViewportPoint(o.e)
-        line.set({
-          x2: pointer.x,
-          y2: pointer.y,
-        })
-
-        fabricCanvas.renderAll()
-      }
-      fabricCanvas.on('mouse:move', handleMouseMove)
-
-      const handleMouseUp = (o: fabric.TPointerEventInfo<fabric.TPointerEvent>) => {
-        if (!line || !fabricCanvas) {
-          return
-        }
-
-        const { x, y } = fabricCanvas.getViewportPoint(o.e)
-        const boundary = fabricCanvas.calcViewportBoundaries().br
-        const withinBounds = x >= 0 && x <= boundary.x && y >= 0 && y <= boundary.y
-        if (!withinBounds) {
-          fabricCanvas.remove(line)
-          line = undefined
-          return
-        }
-
-        line.setCoords()
-        fabricCanvas.fire('object:modified')
-        line = undefined
-      }
-
-      fabricCanvas.on('mouse:up', handleMouseUp)
-
-      return () => {
-        fabricCanvas.off('mouse:down', handleMouseDown)
-        fabricCanvas.off('mouse:move', handleMouseMove)
-        fabricCanvas.off('mouse:up', handleMouseUp)
-      }
-    }, [fabricRef, brushColor, brushSize, tool])
-
-    // Update drawing mode, brush color, and size when tool/brush changes
-    useEffect(() => {
-      const canvas = fabricRef.current;
-      if (!canvas) return;
       if (tool === 'brush') {
-        canvas.isDrawingMode = true;
-        // Ensure the brush is initialized
-        if (!canvas.freeDrawingBrush) {
-          canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-        }
-        canvas.freeDrawingBrush.color = brushColor;
-        canvas.freeDrawingBrush.width = brushSize;
-      } 
-      else {
-        canvas.isDrawingMode = false;
+        return CreateBrushTool(fabricCanvas, brushSize, brushColor)
       }
-    }, [tool, brushColor, brushSize]);
+
+    }, [fabricRef, brushColor, brushSize, tool])
 
     return (
       <div style={{ boxShadow: '0 4px 32px #0008', borderRadius: 8, background: '#23272e' }}>
