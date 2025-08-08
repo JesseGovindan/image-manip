@@ -10,7 +10,6 @@ interface BrushOptionsProps {
   setShowColorPicker: (v: boolean | ((v: boolean) => boolean)) => void;
   setBrushColor: (color: string) => void;
   setBrushSize: (size: number) => void;
-  drawerWidth: number;
   handleColorChange: (c: ColorResult) => void;
 }
 
@@ -21,7 +20,6 @@ export default function BrushOptions({
   setShowColorPicker,
   setBrushColor,
   setBrushSize,
-  drawerWidth,
   handleColorChange,
 }: BrushOptionsProps) {
   return (
@@ -30,7 +28,6 @@ export default function BrushOptions({
       {showColorPicker && (
         <Box sx={{
           position: 'fixed',
-          left: drawerWidth + 100,
           top: 120,
           zIndex: 9999,
           background: '#fff',

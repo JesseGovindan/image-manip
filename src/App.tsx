@@ -8,8 +8,6 @@ import MenuBar from './components/MenuBar';
 import ToolbarDrawer from './components/Toolbar/ToolbarDrawer';
 import './App.css';
 
-const drawerWidth = 80;
-
 export default function App() {
   const [image, setImage] = useState<string | null>(null);
   const [tool, setTool] = useState<Tool>('brush');
@@ -46,23 +44,57 @@ export default function App() {
   }
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateRows: '48px 1fr',
+        gridTemplateColumns: 'min-content 1fr',
+        height: '100vh',
+        width: '100vw',
+        overflow: 'hidden',
+      }}
+    >
       <CssBaseline />
-      <MenuBar onFileChange={handleFileChange} onSave={handleSave} />
-      <ToolbarDrawer
-        tool={tool}
-        setTool={setTool}
-        drawerWidth={drawerWidth}
-        brushColor={brushColor}
-        brushSize={brushSize}
-        showColorPicker={showColorPicker}
-        setShowColorPicker={setShowColorPicker}
-        setBrushColor={setBrushColor}
-        setBrushSize={setBrushSize}
-        handleColorChange={handleColorChange}
-      />
-      <Box component="main" sx={{ flexGrow: 1, bgcolor: 'grey.900', p: 0, ml: `${drawerWidth}px`, mt: '48px', height: 'calc(100vh - 48px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <ImageEditor ref={imageEditorRef} image={image} tool={tool} brushColor={brushColor} brushSize={brushSize} />
+      {/* MenuBar spans both columns */}
+      <Box sx={{ gridColumn: '1 / span 2', gridRow: 1, zIndex: 1201 }}>
+        <MenuBar onFileChange={handleFileChange} onSave={handleSave} />
+      </Box>
+      {/* ToolbarDrawer in first column, second row */}
+      <Box sx={{ gridColumn: 1, gridRow: 2, minWidth: 'auto' }}>
+        <ToolbarDrawer
+          tool={tool}
+          setTool={setTool}
+          brushColor={brushColor}
+          brushSize={brushSize}
+          showColorPicker={showColorPicker}
+          setShowColorPicker={setShowColorPicker}
+          setBrushColor={setBrushColor}
+          setBrushSize={setBrushSize}
+          handleColorChange={handleColorChange}
+        />
+      </Box>
+      {/* Main editor area in second column, second row */}
+      <Box
+        component="main"
+        sx={{
+          gridColumn: 2,
+          gridRow: 2,
+          bgcolor: 'grey.900',
+          p: 0,
+          height: '100%',
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <ImageEditor
+          ref={imageEditorRef}
+          image={image}
+          tool={tool}
+          brushColor={brushColor}
+          brushSize={brushSize}
+        />
       </Box>
     </Box>
   );

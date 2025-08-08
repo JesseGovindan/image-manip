@@ -1,4 +1,17 @@
-import { Drawer, List, ListItem, ListItemIcon, ListItemText, Divider, Toolbar as MuiToolbar } from '@mui/material';
+// Utility to conditionally add a style property
+function onlyIf<T>(cond: boolean, value: T): T | undefined {
+  return cond ? value : undefined;
+}
+
+function conditional<T, R>(cond: boolean, value: T, other: R): T | R | undefined {
+  return cond ? value : other;
+}
+
+// Utility to filter out undefined values from style objects
+function style(obj: Record<keyof SxProps<Theme>, any>) {
+  return Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== undefined));
+}
+import { Drawer, List, ListItem, ListItemIcon, ListItemText, Divider, Toolbar as MuiToolbar, type SxProps, type Theme } from '@mui/material';
 import BrushIcon from '@mui/icons-material/Brush';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
@@ -11,7 +24,6 @@ import type { ColorResult } from 'react-color';
 interface ToolbarDrawerProps {
   tool: Tool;
   setTool: (tool: Tool) => void;
-  drawerWidth: number;
   brushColor: string;
   brushSize: number;
   showColorPicker: boolean;
@@ -23,16 +35,16 @@ interface ToolbarDrawerProps {
 
 export default function ToolbarDrawer(props: ToolbarDrawerProps) {
   const {
-    tool, setTool, drawerWidth,
+    tool, setTool,
     brushColor, brushSize, showColorPicker, setShowColorPicker, setBrushColor, setBrushSize, handleColorChange
   } = props;
   return (
     <Drawer
       variant="permanent"
       sx={{
-        width: drawerWidth,
+        width: 'auto',
         flexShrink: 0,
-        [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box', pt: 6 },
+        [`& .MuiDrawer-paper`]: { width: 'auto', boxSizing: 'border-box', pt: 6 },
       }}
     >
       <MuiToolbar />
@@ -46,10 +58,27 @@ export default function ToolbarDrawer(props: ToolbarDrawerProps) {
             key={key}
             component="button"
             onClick={() => setTool(key as Tool)}
-            sx={tool === key ? { backgroundColor: 'rgba(100, 100, 255, 0.2)' } : {}}
+            sx={style({
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                borderRadius: 1,
+                cursor: 'pointer',
+                gap: '10px',
+                backgroundColor: onlyIf(tool === key, 'rgba(100, 100, 255, 0.2)'),
+            })}
           >
-            <ListItemIcon>{icon}</ListItemIcon>
-            <ListItemText primary={label} sx={{ display: 'none' }} />
+            <ListItemText
+              primary={label}
+              sx={style({
+                color: conditional(tool === key, 'white', '#777'),
+              })}
+              />
+            <ListItemIcon sx={style({
+                color: conditional(tool === key, 'white', '#777'),
+            })}>
+                {icon}
+            </ListItemIcon>
           </ListItem>
         ))}
         <Divider sx={{ my: 1 }} />
@@ -72,7 +101,6 @@ export default function ToolbarDrawer(props: ToolbarDrawerProps) {
           setShowColorPicker={setShowColorPicker}
           setBrushColor={setBrushColor}
           setBrushSize={setBrushSize}
-          drawerWidth={drawerWidth}
           handleColorChange={handleColorChange}
         />
       )}
