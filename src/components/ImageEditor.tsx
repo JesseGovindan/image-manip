@@ -1,10 +1,12 @@
 import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import * as fabric from 'fabric';
 
-export type Tool = 'brush' | 'text' | 'add-image' | 'none';
+export type Tool = 'brush' | 'text' | 'add-image' | 'none' | 'line';
 
 export interface ImageEditorHandle {
   getImageDataUrl: () => string | undefined;
+  undo: () => void;
+  redo: () => void;
 }
 
 interface ImageEditorProps {
@@ -12,12 +14,17 @@ interface ImageEditorProps {
   tool: Tool;
   brushColor: string;
   brushSize: number;
+  setCanRedo: (canRedo: boolean) => void;
+  setCanUndo: (canUndo: boolean) => void;
 }
 
 const ImageEditor = forwardRef<ImageEditorHandle, ImageEditorProps>(
   ({ image, tool, brushColor, brushSize }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const fabricRef = useRef<fabric.Canvas | null>(null);
+    // History stacks for undo/redo
+    const undoStack = useRef<string[]>([]);
+    const redoStack = useRef<string[]>([]);
 
     useImperativeHandle(ref, () => ({
       getImageDataUrl: () => {
@@ -25,6 +32,30 @@ const ImageEditor = forwardRef<ImageEditorHandle, ImageEditorProps>(
           return fabricRef.current.toDataURL({ format: 'png', multiplier: 1 });
         }
         return undefined;
+      },
+      undo: () => {
+        const canvas = fabricRef.current;
+        if (!canvas || undoStack.current.length < 2) return;
+        // Pop current state, push to redo
+        const current = undoStack.current.pop();
+        if (current) redoStack.current.push(current);
+        const prev = undoStack.current[undoStack.current.length - 1];
+        if (prev) {
+          canvas.loadFromJSON(prev, () => {
+            canvas.renderAll();
+          });
+        }
+      },
+      redo: () => {
+        const canvas = fabricRef.current;
+        if (!canvas || redoStack.current.length === 0) return;
+        const next = redoStack.current.pop();
+        if (next) {
+          undoStack.current.push(next);
+          canvas.loadFromJSON(next, () => {
+            canvas.renderAll();
+          });
+        }
       },
     }), []);
 
@@ -60,12 +91,108 @@ const ImageEditor = forwardRef<ImageEditorHandle, ImageEditorProps>(
         }
         fabricCanvas.backgroundImage = img;
         fabricCanvas.requestRenderAll();
+        // Save initial state to undo stack
+        undoStack.current = [fabricCanvas.toJSON() as unknown as string];
+        redoStack.current = [];
       });
+      // Listen for changes to push to undo stack
+      const saveState = () => {
+        console.log('Saving state');
+        // Only push if not identical to last
+        const canvas = fabricRef.current;
+        if (!canvas) {
+          console.warn('Fabric canvas not initialized');
+          return;
+        }
+        const json = canvas.toJSON() as unknown as string;
+        const hasStateChanged = undoStack.current[undoStack.current.length - 1] !== json;
+        if (!hasStateChanged) {
+          console.log('State has not changed, skipping save');
+          return;
+        }
+
+        undoStack.current.push(json);
+        // Clear redo stack on new action
+        redoStack.current = [];
+      };
+      fabricCanvas.on('object:added', saveState);
+      fabricCanvas.on('object:modified', saveState);
+      fabricCanvas.on('object:removed', saveState);
+      fabricCanvas.on('path:created', saveState);
+
+
       return () => {
         isMounted = false;
         fabricCanvas.dispose();
       };
     }, [image]);
+
+    useEffect(() => {
+      const fabricCanvas = fabricRef.current
+      if (!fabricCanvas) {
+        return
+      }
+      let line: fabric.Line | undefined = undefined
+
+      const handleMouseDown = (o: fabric.TPointerEventInfo<fabric.TPointerEvent>) => {
+        if (tool !== 'line') {
+          return
+        }
+        const pointer = fabricCanvas.getViewportPoint(o.e)
+        line = new fabric.Line([pointer.x, pointer.y, pointer.x, pointer.y], {
+          strokeWidth: brushSize,
+          stroke: brushColor,
+        })
+        line.selectable = false
+        line.evented = false
+        line.strokeUniform = true
+        fabricCanvas.add(line)
+      }
+
+      fabricCanvas.on('mouse:down', handleMouseDown)
+
+      const handleMouseMove = (o: fabric.TPointerEventInfo<fabric.TPointerEvent>) => {
+        if (!line) {
+          return
+        }
+
+        const pointer = fabricCanvas.getViewportPoint(o.e)
+        line.set({
+          x2: pointer.x,
+          y2: pointer.y,
+        })
+
+        fabricCanvas.renderAll()
+      }
+      fabricCanvas.on('mouse:move', handleMouseMove)
+
+      const handleMouseUp = (o: fabric.TPointerEventInfo<fabric.TPointerEvent>) => {
+        if (!line || !fabricCanvas) {
+          return
+        }
+
+        const { x, y } = fabricCanvas.getViewportPoint(o.e)
+        const boundary = fabricCanvas.calcViewportBoundaries().br
+        const withinBounds = x >= 0 && x <= boundary.x && y >= 0 && y <= boundary.y
+        if (!withinBounds) {
+          fabricCanvas.remove(line)
+          line = undefined
+          return
+        }
+
+        line.setCoords()
+        fabricCanvas.fire('object:modified')
+        line = undefined
+      }
+
+      fabricCanvas.on('mouse:up', handleMouseUp)
+
+      return () => {
+        fabricCanvas.off('mouse:down', handleMouseDown)
+        fabricCanvas.off('mouse:move', handleMouseMove)
+        fabricCanvas.off('mouse:up', handleMouseUp)
+      }
+    }, [fabricRef, brushColor, brushSize, tool])
 
     // Update drawing mode, brush color, and size when tool/brush changes
     useEffect(() => {
@@ -79,7 +206,8 @@ const ImageEditor = forwardRef<ImageEditorHandle, ImageEditorProps>(
         }
         canvas.freeDrawingBrush.color = brushColor;
         canvas.freeDrawingBrush.width = brushSize;
-      } else {
+      } 
+      else {
         canvas.isDrawingMode = false;
       }
     }, [tool, brushColor, brushSize]);

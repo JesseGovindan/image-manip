@@ -13,6 +13,7 @@ function style(obj: Record<keyof SxProps<Theme>, any>) {
 }
 import { Drawer, List, ListItem, ListItemIcon, ListItemText, Divider, Toolbar as MuiToolbar, type SxProps, type Theme } from '@mui/material';
 import BrushIcon from '@mui/icons-material/Brush';
+import LineIcon from '@mui/icons-material/ShapeLine';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import UndoIcon from '@mui/icons-material/Undo';
@@ -20,6 +21,7 @@ import RedoIcon from '@mui/icons-material/Redo';
 import type { Tool } from '../ImageEditor';
 import BrushOptions from '../BrushOptions';
 import type { ColorResult } from 'react-color';
+import LineOptions from '../LineOptions';
 
 interface ToolbarDrawerProps {
   tool: Tool;
@@ -31,6 +33,10 @@ interface ToolbarDrawerProps {
   setBrushColor: (color: string) => void;
   setBrushSize: (size: number) => void;
   handleColorChange: (c: ColorResult) => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canRedo: boolean;
+  canUndo: boolean;
 }
 
 export default function ToolbarDrawer(props: ToolbarDrawerProps) {
@@ -51,6 +57,7 @@ export default function ToolbarDrawer(props: ToolbarDrawerProps) {
       <List>
         {[
           { key: 'brush', icon: <BrushIcon />, label: 'Brush' },
+          { key: 'line', icon: <LineIcon />, label: 'Line' },
           { key: 'text', icon: <TextFieldsIcon />, label: 'Text' },
           { key: 'add-image', icon: <AddPhotoAlternateIcon />, label: 'Add Img' },
         ].map(({ key, icon, label }) => (
@@ -83,18 +90,39 @@ export default function ToolbarDrawer(props: ToolbarDrawerProps) {
         ))}
         <Divider sx={{ my: 1 }} />
         {[
-          { key: 'undo', icon: <UndoIcon />, label: 'Undo' },
-          { key: 'redo', icon: <RedoIcon />, label: 'Redo' },
-        ].map(({ key, icon, label }) => (
-          <ListItem key={key} component="button">
-            <ListItemIcon>{icon}</ListItemIcon>
-            <ListItemText primary={label} sx={{ display: 'none' }} />
+          { key: 'undo', icon: <UndoIcon />, label: 'Undo', onClick: props.onUndo, enabled: props.canUndo },
+          { key: 'redo', icon: <RedoIcon />, label: 'Redo', onClick: props.onRedo, enabled: props.canRedo },
+        ].map(({ key, icon, label, onClick, enabled }) => (
+          <ListItem
+            key={key}
+            component="button"
+            onClick={onClick}
+            disabled={!enabled}
+            >
+            <ListItemIcon
+            onClick={() => {
+              console.log('here');
+              alert(`This feature is not implemented yet: ${label}`);
+            }}
+            >{icon}</ListItemIcon>
+            <ListItemText primary={label}/>
           </ListItem>
         ))}
       </List>
       {/* Brush options */}
       {tool === 'brush' && (
         <BrushOptions
+          brushColor={brushColor}
+          brushSize={brushSize}
+          showColorPicker={showColorPicker}
+          setShowColorPicker={setShowColorPicker}
+          setBrushColor={setBrushColor}
+          setBrushSize={setBrushSize}
+          handleColorChange={handleColorChange}
+        />
+      )}
+      {tool === 'line' && (
+        <LineOptions
           brushColor={brushColor}
           brushSize={brushSize}
           showColorPicker={showColorPicker}

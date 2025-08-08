@@ -15,6 +15,8 @@ export default function App() {
   const [brushSize, setBrushSize] = useState<number>(10);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const imageEditorRef = useRef<ImageEditorHandle>(null);
+  const [canRedo, setCanRedo] = useState(false);
+  const [canUndo, setCanUndo] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -71,6 +73,10 @@ export default function App() {
           setBrushColor={setBrushColor}
           setBrushSize={setBrushSize}
           handleColorChange={handleColorChange}
+          onUndo={() => imageEditorRef.current?.undo()}
+          onRedo={() => imageEditorRef.current?.redo()}
+          canRedo={canRedo}
+          canUndo={canUndo}
         />
       </Box>
       {/* Main editor area in second column, second row */}
@@ -94,6 +100,8 @@ export default function App() {
           tool={tool}
           brushColor={brushColor}
           brushSize={brushSize}
+          setCanRedo={setCanRedo}
+          setCanUndo={setCanUndo}
         />
       </Box>
     </Box>
