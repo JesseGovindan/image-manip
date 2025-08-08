@@ -21,7 +21,6 @@ import RedoIcon from '@mui/icons-material/Redo';
 import type { Tool } from '../ImageEditor';
 import BrushOptions from '../BrushOptions';
 import type { ColorResult } from 'react-color';
-import LineOptions from '../LineOptions';
 
 interface ToolbarDrawerProps {
   tool: Tool;
@@ -39,11 +38,15 @@ interface ToolbarDrawerProps {
   canUndo: boolean;
 }
 
+const TOOLS_THAT_NEED_BRUSH_OPTIONS: Tool[] = ['brush', 'line']
+
 export default function ToolbarDrawer(props: ToolbarDrawerProps) {
   const {
     tool, setTool,
     brushColor, brushSize, showColorPicker, setShowColorPicker, setBrushColor, setBrushSize, handleColorChange
   } = props;
+
+  const showBrushOptions = TOOLS_THAT_NEED_BRUSH_OPTIONS.includes(tool)
   return (
     <Drawer
       variant="permanent"
@@ -110,19 +113,8 @@ export default function ToolbarDrawer(props: ToolbarDrawerProps) {
         ))}
       </List>
       {/* Brush options */}
-      {tool === 'brush' && (
+      {showBrushOptions && (
         <BrushOptions
-          brushColor={brushColor}
-          brushSize={brushSize}
-          showColorPicker={showColorPicker}
-          setShowColorPicker={setShowColorPicker}
-          setBrushColor={setBrushColor}
-          setBrushSize={setBrushSize}
-          handleColorChange={handleColorChange}
-        />
-      )}
-      {tool === 'line' && (
-        <LineOptions
           brushColor={brushColor}
           brushSize={brushSize}
           showColorPicker={showColorPicker}
